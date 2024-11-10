@@ -1,0 +1,30 @@
+{
+    supervisor {
+        bun run --watch index.ts
+    }
+    # Discord OAuth 2.0 client settings
+    discord {
+        client_id {$DISCORD_CLIENT_ID}
+        client_secret {$DISCORD_CLIENT_SECRET}
+        redirect http://localhost:8080/discord/callback
+
+        realm just_for_me {
+            user {$DISCORD_USER_ID}
+        }
+    }
+}
+
+http://localhost:8080 {
+    route /discord/callback {
+        discord callback
+    }
+    
+    route * {
+        protect using just_for_me
+        reverse_proxy localhost:8081 {
+            # Pass user information to backend
+            header_up X-Auth-Username "{http.auth.user.username}"
+            header_up X-Auth-ID "{http.auth.user.id}"
+        }
+    }
+}
